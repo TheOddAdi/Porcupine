@@ -1,0 +1,3 @@
+C:/Users/adity/OneDrive/Documents/Coding/Porcupine/build/CMakeFiles/porcupine.dir
+C:/Users/adity/OneDrive/Documents/Coding/Porcupine/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/adity/OneDrive/Documents/Coding/Porcupine/build/CMakeFiles/ZERO_CHECK.dir
