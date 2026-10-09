@@ -1,5 +1,6 @@
 #include "lexer.hpp"
 #include "parser.hpp"
+#include "semantic.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -116,6 +117,7 @@ int main(int argc, char* argv[]) {
         std::istreambuf_iterator<char>()
     };
 
+    // Stage 1: Lexical analysis
     Lexer lexer(source);
     std::vector<Token> tokens = lexer.tokenize();
 
@@ -132,6 +134,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Stage 2: Syntax analysis
     Parser parser(tokens);
     std::unique_ptr<Program> program = parser.parse();
 
@@ -146,6 +149,23 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Stage 3: Semantic analysis
+    SemanticAnalyzer analyzer;
+    analyzer.analyze(*program);
+
+    for (const auto& error : analyzer.getErrors()) {
+        std::cerr << argv[1]
+                  << ": semantic error: "
+                  << error.message << '\n';
+        failed = true;
+    }
+
+    if (failed) {
+        return 1;
+    }
+
+    // Print the AST only if every stage succeeds.
     printProgram(*program);
+
     return 0;
 }

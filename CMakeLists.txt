@@ -10,4 +10,5 @@ add_executable(porcupine
     src/main.cpp
     src/lexer.cpp
     src/parser.cpp
+    src/semantic.cpp
 )

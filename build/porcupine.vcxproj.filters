@@ -10,6 +10,9 @@
     <ClCompile Include="C:\Users\adity\OneDrive\Documents\Coding\Porcupine\src\parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\adity\OneDrive\Documents\Coding\Porcupine\src\semantic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\Users\adity\OneDrive\Documents\Coding\Porcupine\CMakeLists.txt" />
