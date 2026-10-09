@@ -9,4 +9,5 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(porcupine
     src/main.cpp
     src/lexer.cpp
+    src/parser.cpp
 )

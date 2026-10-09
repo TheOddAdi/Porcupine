@@ -1,8 +1,8 @@
-
 #include "lexer.hpp"
 
 #include <cctype>
 #include <string>
+#include <unordered_map>
 
 // Stores the source code that this lexer will scan.
 Lexer::Lexer(const std::string& source)
@@ -38,17 +38,17 @@ char Lexer::peekNext() const {
 
 // Consumes one character and updates the source location.
 char Lexer::advance() {
-    char c = current();
+    if (position >= source.size()) {
+        return '\0';
+    }
 
-    if (c != '\0') {
-        ++position;
+    char c = source[position++];
 
-        if (c == '\n') {
-            ++line;
-            column = 1;
-        } else {
-            ++column;
-        }
+    if (c == '\n') {
+        ++line;
+        column = 1;
+    } else {
+        ++column;
     }
 
     return c;
@@ -56,15 +56,16 @@ char Lexer::advance() {
 
 // Skips spaces, tabs, newlines, and other whitespace.
 void Lexer::skipWhitespace() {
-    while (std::isspace(
-        static_cast<unsigned char>(current()))) {
+    while (position < source.size() &&
+           std::isspace(
+               static_cast<unsigned char>(current()))) {
         advance();
     }
 }
 
 // Skips a // comment until the end of the line.
 void Lexer::skipLineComment() {
-    while (current() != '\0' && current() != '\n') {
+    while (position < source.size() && current() != '\n') {
         advance();
     }
 }
@@ -79,7 +80,7 @@ void Lexer::skipBlockComment() {
     advance();
     advance();
 
-    while (current() != '\0') {
+    while (position < source.size()) {
         if (current() == '*' && peek() == '/') {
             advance();
             advance();
@@ -120,14 +121,51 @@ std::vector<Token> Lexer::tokenize() {
     column = 1;
     errors.clear();
 
-    while (current() != '\0') {
+    // Maps reserved words to their token types.
+    static const std::unordered_map<std::string, TokenType> keywords = {
+        // Built-in types
+        {"int", TokenType::KeywordInt},
+        {"float", TokenType::KeywordFloat},
+        {"bool", TokenType::KeywordBool},
+        {"char", TokenType::KeywordChar},
+        {"void", TokenType::KeywordVoid},
+        {"string", TokenType::KeywordString},
+        {"unsigned", TokenType::KeywordUnsigned},
+        {"var", TokenType::KeywordVar},
+
+        // Declarations
+        {"const", TokenType::KeywordConst},
+        {"type", TokenType::KeywordType},
+
+        // Control flow
+        {"return", TokenType::KeywordReturn},
+        {"if", TokenType::KeywordIf},
+        {"else", TokenType::KeywordElse},
+        {"while", TokenType::KeywordWhile},
+        {"for", TokenType::KeywordFor},
+        {"do", TokenType::KeywordDo},
+        {"break", TokenType::KeywordBreak},
+        {"continue", TokenType::KeywordContinue},
+
+        // Comparison statements
+        {"compare", TokenType::KeywordCompare},
+        {"case", TokenType::KeywordCase},
+        {"default", TokenType::KeywordDefault},
+
+        // Special keywords and boolean literals
+        {"nullptr", TokenType::KeywordNullptr},
+        {"true", TokenType::KeywordTrue},
+        {"false", TokenType::KeywordFalse}
+    };
+
+    while (position < source.size()) {
         skipWhitespace();
 
-        if (current() == '\0') {
+        if (position >= source.size()) {
             break;
         }
 
-        // Comments must be recognized before treating / as an operator.
+        // Comments must be recognized before the / operator.
         if (current() == '/' && peek() == '/') {
             skipLineComment();
             continue;
@@ -143,29 +181,32 @@ std::vector<Token> Lexer::tokenize() {
         char c = current();
 
         // IDENTIFIERS AND KEYWORDS
-        if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
+        if (std::isalpha(static_cast<unsigned char>(c)) ||
+            c == '_') {
             std::string text;
 
-            while (std::isalnum(
-                       static_cast<unsigned char>(current())) ||
-                   current() == '_') {
+            while (position < source.size() &&
+                   (std::isalnum(
+                        static_cast<unsigned char>(current())) ||
+                    current() == '_')) {
                 text += advance();
             }
 
             TokenType type = TokenType::Identifier;
 
-            if (text == "int") type = TokenType::KeywordInt;
-            else if (text == "float") type = TokenType::KeywordFloat;
-            else if (text == "bool") type = TokenType::KeywordBool;
-            else if (text == "char") type = TokenType::KeywordChar;
-            else if (text == "void") type = TokenType::KeywordVoid;
-            else if (text == "string") type = TokenType::KeywordString;
-            else if (text == "return") type = TokenType::KeywordReturn;
-            else if (text == "if") type = TokenType::KeywordIf;
-            else if (text == "else") type = TokenType::KeywordElse;
-            else if (text == "while") type = TokenType::KeywordWhile;
+            auto keyword = keywords.find(text);
 
-            tokens.push_back({type, text, tokenLine, tokenColumn});
+            if (keyword != keywords.end()) {
+                type = keyword->second;
+            }
+
+            tokens.push_back({
+                type,
+                text,
+                tokenLine,
+                tokenColumn
+            });
+
             continue;
         }
 
@@ -174,19 +215,21 @@ std::vector<Token> Lexer::tokenize() {
             std::string text;
 
             // Read the integer portion.
-            while (std::isdigit(
-                static_cast<unsigned char>(current()))) {
+            while (position < source.size() &&
+                   std::isdigit(
+                       static_cast<unsigned char>(current()))) {
                 text += advance();
             }
 
             // A decimal point followed by a digit makes this a float.
-            // This keeps a.b and 123.member from being treated as floats.
             if (current() == '.' &&
-                std::isdigit(static_cast<unsigned char>(peek()))) {
+                std::isdigit(
+                    static_cast<unsigned char>(peek()))) {
                 text += advance();
 
-                while (std::isdigit(
-                    static_cast<unsigned char>(current()))) {
+                while (position < source.size() &&
+                       std::isdigit(
+                           static_cast<unsigned char>(current()))) {
                     text += advance();
                 }
 
@@ -213,26 +256,27 @@ std::vector<Token> Lexer::tokenize() {
             std::string text;
             bool terminated = false;
 
-            // Include the opening quote in the token's original text.
+            // Include the opening quote in the token text.
             text += advance();
 
-            while (current() != '\0') {
+            while (position < source.size()) {
                 if (current() == '"') {
                     text += advance();
                     terminated = true;
                     break;
                 }
 
-                // A raw newline is not allowed inside this string syntax.
+                // Raw newlines are not allowed in strings.
                 if (current() == '\n') {
                     break;
                 }
 
+                // Preserve escaped characters.
                 if (current() == '\\') {
-                    // Preserve the backslash and the escaped character.
                     text += advance();
 
-                    if (current() == '\0' || current() == '\n') {
+                    if (position >= source.size() ||
+                        current() == '\n') {
                         break;
                     }
 
@@ -261,14 +305,19 @@ std::vector<Token> Lexer::tokenize() {
         }
 
         // MULTI-CHARACTER OPERATORS
-        // Check the longest operators first, such as <<= and >>=.
+        // Check three-character operators first.
         if (c == '<' && peek() == '<' && peekNext() == '=') {
             advance();
             advance();
             advance();
+
             tokens.push_back({
-                TokenType::LeftShiftEquals, "<<=", tokenLine, tokenColumn
+                TokenType::LeftShiftEquals,
+                "<<=",
+                tokenLine,
+                tokenColumn
             });
+
             continue;
         }
 
@@ -276,13 +325,18 @@ std::vector<Token> Lexer::tokenize() {
             advance();
             advance();
             advance();
+
             tokens.push_back({
-                TokenType::RightShiftEquals, ">>=", tokenLine, tokenColumn
+                TokenType::RightShiftEquals,
+                ">>=",
+                tokenLine,
+                tokenColumn
             });
+
             continue;
         }
 
-        // Two-character operators.
+        // Check two-character operators.
         TokenType type;
         bool matched = true;
         std::string op;
@@ -332,7 +386,13 @@ std::vector<Token> Lexer::tokenize() {
             else matched = false;
 
             if (matched) {
-                tokens.push_back({type, op, tokenLine, tokenColumn});
+                tokens.push_back({
+                    type,
+                    op,
+                    tokenLine,
+                    tokenColumn
+                });
+
                 continue;
             }
         }
@@ -344,28 +404,33 @@ std::vector<Token> Lexer::tokenize() {
             case '*': type = TokenType::Star; break;
             case '/': type = TokenType::Slash; break;
             case '%': type = TokenType::Percent; break;
+
             case '=': type = TokenType::Equals; break;
             case '!': type = TokenType::Bang; break;
             case '<': type = TokenType::Less; break;
             case '>': type = TokenType::Greater; break;
+
             case '&': type = TokenType::Ampersand; break;
             case '|': type = TokenType::Pipe; break;
             case '^': type = TokenType::Caret; break;
             case '~': type = TokenType::Tilde; break;
+
             case '?': type = TokenType::Question; break;
             case ':': type = TokenType::Colon; break;
+
             case '(': type = TokenType::LeftParen; break;
             case ')': type = TokenType::RightParen; break;
             case '{': type = TokenType::LeftBrace; break;
             case '}': type = TokenType::RightBrace; break;
             case '[': type = TokenType::LeftBracket; break;
             case ']': type = TokenType::RightBracket; break;
+
             case ';': type = TokenType::Semicolon; break;
             case ',': type = TokenType::Comma; break;
             case '.': type = TokenType::Dot; break;
 
             default:
-                // Preserve the bad character as a token and report it.
+                // Preserve the invalid character and report its location.
                 tokens.push_back({
                     TokenType::Unknown,
                     std::string(1, c),
@@ -393,7 +458,7 @@ std::vector<Token> Lexer::tokenize() {
         advance();
     }
 
-    // Always append EOF so the parser can detect the end of the input.
+    // Append EOF so the parser can detect the end of the input.
     tokens.push_back({
         TokenType::EndOfFile,
         "",

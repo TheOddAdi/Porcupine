@@ -358,6 +358,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <ItemGroup>
     <ClCompile Include="C:\Users\adity\OneDrive\Documents\Coding\Porcupine\src\main.cpp" />
     <ClCompile Include="C:\Users\adity\OneDrive\Documents\Coding\Porcupine\src\lexer.cpp" />
+    <ClCompile Include="C:\Users\adity\OneDrive\Documents\Coding\Porcupine\src\parser.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

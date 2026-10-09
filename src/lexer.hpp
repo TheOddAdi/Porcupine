@@ -1,22 +1,44 @@
-
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
 // Every kind of token the lexer can recognize.
 enum class TokenType {
-    // Keywords
+    // Built-in type keywords
     KeywordInt,
     KeywordFloat,
     KeywordBool,
     KeywordChar,
     KeywordVoid,
     KeywordString,
+    KeywordUnsigned,
+    KeywordVar,
+
+    // Declaration keywords
+    KeywordConst,
+    KeywordType,
+
+    // Control flow
     KeywordReturn,
     KeywordIf,
     KeywordElse,
     KeywordWhile,
+    KeywordFor,
+    KeywordDo,
+    KeywordBreak,
+    KeywordContinue,
+
+    // Comparison statement
+    KeywordCompare,
+    KeywordCase,
+    KeywordDefault,
+
+    // Special keywords and boolean literals
+    KeywordNullptr,
+    KeywordTrue,
+    KeywordFalse,
 
     // Names and literals
     Identifier,
@@ -50,18 +72,18 @@ enum class TokenType {
     LessEqual,     // <=
     GreaterEqual,  // >=
 
-    // Logical operators
-    Ampersand,     // &
-    Pipe,          // |
-    Caret,         // ^
-    Tilde,         // ~
-    AmpAmp,        // &&
-    PipePipe,      // ||
-    LeftShift,     // <<
-    RightShift,    // >>
-    AmpEquals,     // &=
-    PipeEquals,    // |=
-    CaretEquals,   // ^=
+    // Bitwise and logical operators
+    Ampersand,        // &
+    Pipe,             // |
+    Caret,            // ^
+    Tilde,            // ~
+    AmpAmp,           // &&
+    PipePipe,         // ||
+    LeftShift,        // <<
+    RightShift,       // >>
+    AmpEquals,        // &=
+    PipeEquals,       // |=
+    CaretEquals,      // ^=
     LeftShiftEquals,  // <<=
     RightShiftEquals, // >>=
 
@@ -105,7 +127,7 @@ class Lexer {
 public:
     explicit Lexer(const std::string& source);
 
-    // Converts the source code into a list of tokens.
+    // Converts source code into a list of tokens.
     std::vector<Token> tokenize();
 
     // Returns errors found during tokenization.
