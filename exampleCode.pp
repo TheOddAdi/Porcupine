@@ -32,8 +32,8 @@ int main() {
     float z1 = 10.0 / 3.0;  // Approximately 3.3333333
 
     // Manual bit allocation
-    var(3) val = -3; //3bit in this case, signed
-    unsigned var(3) uVal = 5; //3bit in this case, unsigned
+    var<3> val = -3; //3bit in this case, signed
+    unsigned var<3> uVal = 5; //3bit in this case, unsigned
     // min size is 1, max size is 64. size of 1 must be unsigned
 
     // String
@@ -41,7 +41,7 @@ int main() {
 
     // Constants
     const int limit = 10;
-    const var(5) max = 15;
+    const var<5> max = 15;
 
     // Unsigned variables
     unsigned int uInt = 74;
